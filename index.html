@@ -1,0 +1,1530 @@
+
+<!DOCTYPE html>
+
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<title>539簽牌柱碰</title>
+<script src="https://cdn.tailwindcss.com">
+function addSummaryColumn() {
+  const head = document.querySelector("#summaryTable thead tr");
+  const rows = document.querySelectorAll("#summaryTable tbody tr");
+  const colIndex = head.children.length + 1;
+  head.insertAdjacentHTML("beforeend", `<th class="border" class="border border-black px-1 py-0.5" style="border: 1px solid black;">欄${colIndex}</th>`);
+  rows.forEach(row => {
+    row.insertAdjacentHTML("beforeend", `<td class="border" class="border border-black px-1 py-0.5" style="border: 1px solid black;"><input class='w-full border' /></td>`);
+  });
+}
+function removeSummaryColumn() {
+  const head = document.querySelector("#summaryTable thead tr");
+  const rows = document.querySelectorAll("#summaryTable tbody tr");
+  if (head.children.length > 6) {
+    head.deleteCell(-1);
+    rows.forEach(row => row.deleteCell(-1));
+  }
+}
+function addSummaryRow() {
+  const rowCount = document.querySelectorAll("#summaryTable tbody tr").length + 1;
+  const colCount = document.querySelectorAll("#summaryTable thead tr th").length;
+  let row = `<tr><td class='border' class="border border-black px-1 py-0.5" style="border: 1px solid black;">獎項${rowCount}</td>
+    <td class='border' class="border border-black px-1 py-0.5" style="border: 1px solid black;">0</td>
+    <td class='border' class="border border-black px-1 py-0.5" style="border: 1px solid black;"><input type="number" value="1" class='w-full border' /></td>
+    <td class='border' class="border border-black px-1 py-0.5" style="border: 1px solid black;">0.0</td>
+    <td class='border' class="border border-black px-1 py-0.5" style="border: 1px solid black;"><input type="number" value="60" class='w-full border' /></td>
+    <td class='border' class="border border-black px-1 py-0.5" style="border: 1px solid black;">0</td>`;
+  for (let i = 6; i < colCount; i++) {
+    row += `<td class='border' class="border border-black px-1 py-0.5" style="border: 1px solid black;"><input class='w-full border' /></td>`;
+  }
+  row += `</tr>`;
+  document.querySelector("#summaryTable tbody").insertAdjacentHTML("beforeend", row);
+}
+function removeSummaryRow() {
+  const rows = document.querySelectorAll("#summaryTable tbody tr");
+  if (rows.length > 1) rows[rows.length - 1].remove();
+}
+
+</script>
+<style>
+    .cell { min-width: 80px; min-height: 40px; cursor: pointer; }
+    .cell.selected { background-color: #d1fae5; }
+    .hit { border: 2px solid red; padding: 2px 4px; border-radius: 4px; display: inline-block; margin: 1px; }
+    input[type="number"] { text-align: center; }
+  </style>
+<style>
+button.rounded {
+  margin: 0;
+}
+</style>
+<style>
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
+</style>
+<style>
+.btn-group {
+  display: flex;
+}
+.btn-group > button {
+  margin: 0;
+  border-radius: 0;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  border-left: 1px solid white;
+}
+.btn-group > button:first-child {
+  border-left: none;
+}
+</style>
+
+<style>
+#betHistoryTable {
+  border-collapse: collapse;
+}
+#betHistoryTable th, #betHistoryTable td {
+  border: 1px solid black !important;
+}
+</style>
+
+</head>
+<body class="bg-gray-100 p-4">
+<div class="max-w-7xl mx-auto">
+<div class="flex items-center justify-between mb-2">
+<h2 class="text-xl font-semibold">539 簽牌柱碰區</h2>
+<div class="flex items-center gap-2"><button class="bg-blue-500 text-white px-4 py-2 rounded mr-2" onclick="recheckAllBets()">🔁 重新對獎</button>
+<label class="font-semibold">開獎的號碼：</label>
+<input class="border p-1 rounded w-32" id="drawNumbers" onclick="selectDrawInput()" oninput="checkMatch(); updateFullCarInfo();"/>
+<label class="font-semibold">命中的號碼：</label>
+<span class="text-red-600 font-bold" id="matchSummary">0</span>
+</div>
+</div>
+<div class="bg-green-50 border border-green-800 rounded-xl p-1 shadow-md mb-2 text-center flex items-center justify-center flex-col">
+<div class="flex justify-center items-center gap-2 mb-2 w-full max-w-fit flex-row" style="margin-top: 20px;">
+<div class="text-black font-bold leading-tight text-center whitespace-pre" style="line-height: 1.2rem;">全<br/>車</div>
+<div class="flex-1">
+<table class="w-full text-sm text-center table-fixed border border-black table-auto mb-3">
+<tr class="bg-gray-100">
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">柱數</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">車數</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">每注金額</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">下注支數</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">下注金</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">總獎金</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">交收金額</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">操作</th>
+</tr>
+<tr>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;"><input class="border rounded p-0.5 text-center w-full" id="betCount" onclick="selectCell(this)" oninput="updateFullCarInfo(); checkMatch();" placeholder="例如:1,2,3," type="text" value=""/><div class="text-sm mt-1" id="betDisplay"></div></td>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;"><input class="border rounded p-0.5 text-center w-full" id="carCount" oninput="updateFullCarInfo()" step="0.001" type="number" value=""/></td>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;"><input class="border rounded p-0.5 text-center w-full" id="amountPerCar" oninput="updateFullCarInfo()" step="0.01" type="number" value="74"/></td>
+<td class="border border-black px-1 py-0.5" id="totalLines" style="border: 1px solid black;">0</td>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;"><span id="totalCost">0</span></td>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;"><span id="totalReward">0</span></td>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;"><span id="netProfit">0</span></td>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;">
+<button class="bg-green-300 hover:bg-green-400 px-1 py-0.5 rounded mb-1" onclick="recordFullcarBet()">下注</button>
+<button class="bg-red-200 hover:bg-red-300 px-1 py-0.5 rounded" onclick="clearFullCarTable()">清空</button>
+</td>
+</tr>
+</table></div></div>
+</div>
+<div class="bg-blue-50 border border-blue-300 rounded-xl p-2 shadow-md mb-4"><table class="w-full border text-center table-fixed mb-4" id="mainTable" style="border-collapse: collapse; border: 1px solid black;;margin-top:0;margin-bottom:0;padding-top:0;padding-bottom:0;">
+<thead class="border border-black px-1 py-0.5" style="border: 1px solid black;"><tr class="bg-gray-200" id="tableHeader">
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">柱1</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">柱2</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">柱3</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">柱4</th><th class="border border-black px-1 py-0.5" style="border: 1px solid black;">柱5</th><th class="border border-black px-1 py-0.5" style="border: 1px solid black;">柱6</th><th class="border border-black px-1 py-0.5" style="border: 1px solid black;">柱7</th><th class="border border-black px-1 py-0.5" style="border: 1px solid black;">柱8</th><th class="border border-black px-1 py-0.5" style="border: 1px solid black;">柱9</th><th class="border border-black px-1 py-0.5" style="border: 1px solid black;">柱10</th></tr></thead>
+<tbody><tr><td class="border border-black px-1 py-0.5" contenteditable="" onclick="selectCell(this)" style="border: 1px solid black;"></td><td class="border border-black px-1 py-0.5" contenteditable="" onclick="selectCell(this)" style="border: 1px solid black;"></td><td class="border border-black px-1 py-0.5" contenteditable="" onclick="selectCell(this)" style="border: 1px solid black;"></td><td class="border border-black px-1 py-0.5" contenteditable="" onclick="selectCell(this)" style="border: 1px solid black;"></td><td class="border border-black px-1 py-0.5" contenteditable="" onclick="selectCell(this)" style="border: 1px solid black;"></td><td class="border border-black px-1 py-0.5" contenteditable="" onclick="selectCell(this)" style="border: 1px solid black;"></td><td class="border border-black px-1 py-0.5" contenteditable="" onclick="selectCell(this)" style="border: 1px solid black;"></td><td class="border border-black px-1 py-0.5" contenteditable="" onclick="selectCell(this)" style="border: 1px solid black;"></td><td class="border border-black px-1 py-0.5" contenteditable="" onclick="selectCell(this)" style="border: 1px solid black;"></td><td class="border border-black px-1 py-0.5" contenteditable="" onclick="selectCell(this)" style="border: 1px solid black;"></td></tr>
+</tbody>
+</table><table class="w-full border text-center table-fixed mb-4" id="summaryTable" style="border-collapse: collapse; border: 1px solid black;;margin-top:0;margin-bottom:0;padding-top:0;padding-bottom:0;">
+<thead class="border border-black px-1 py-0.5" style="border: 1px solid black;">
+<tr class="bg-gray-200">
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">柱碰表</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">碰數</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">倍數</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">下注支數</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">注金</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">下注金</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">中獎支數</th><th class="border border-black px-1 py-0.5" style="border: 1px solid black;">總獎金</th><th class="border border-black px-1 py-0.5" style="border: 1px solid black;">交收金額</th></tr>
+</thead>
+<tbody>
+<tr>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;">二星</td>
+<td class="border border-black px-1 py-0.5" id="c2" style="border: 1px solid black;">0</td>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;"><input class="w-full border" id="m2" style="background-color:#fff9db;" type="number"/></td>
+<td class="border border-black px-1 py-0.5" id="s2" style="border: 1px solid black;">0.0</td>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;"><input class="w-full border" id="a2" style="background-color:#fff9db;" type="number" value="74"/></td>
+<td class="border border-black px-1 py-0.5" id="t2" style="border: 1px solid black;">0</td>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;">0</td><td class="border border-black px-1 py-0.5" id="w2" style="border: 1px solid black;">0</td><td class="border border-black px-1 py-0.5" id="sum2" style="border: 1px solid black;">0</td></tr>
+<tr>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;">三星</td>
+<td class="border border-black px-1 py-0.5" id="c3" style="border: 1px solid black;">0</td>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;"><input class="w-full border" id="m3" style="background-color:#fff9db;" type="number"/></td>
+<td class="border border-black px-1 py-0.5" id="s3" style="border: 1px solid black;">0.0</td>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;"><input class="w-full border" id="a3" style="background-color:#fff9db;" type="number" value="64"/></td>
+<td class="border border-black px-1 py-0.5" id="t3" style="border: 1px solid black;">0</td>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;">0</td><td class="border border-black px-1 py-0.5" id="w3" style="border: 1px solid black;">0</td><td class="border border-black px-1 py-0.5" id="sum3" style="border: 1px solid black;">0</td></tr>
+<tr>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;">四星</td>
+<td class="border border-black px-1 py-0.5" id="c4" style="border: 1px solid black;">0</td>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;"><input class="w-full border" id="m4" style="background-color:#fff9db;" type="number"/></td>
+<td class="border border-black px-1 py-0.5" id="s4" style="border: 1px solid black;">0.0</td>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;"><input class="w-full border" id="a4" style="background-color:#fff9db;" type="number" value="60"/></td>
+<td class="border border-black px-1 py-0.5" id="t4" style="border: 1px solid black;">0</td>
+<td class="border border-black px-1 py-0.5" style="border: 1px solid black;">0</td><td class="border border-black px-1 py-0.5" id="w4" style="border: 1px solid black;">0</td><td class="border border-black px-1 py-0.5" id="sum4" style="border: 1px solid black;">0</td></tr></tbody>
+</table><div class="flex gap-4 justify-between mt-2 text-sm font-bold text-black items-center" style="margin-top:0;margin-bottom:0;margin-top:0;margin-bottom:0;padding-top:0;padding-bottom:0;">
+<div class="flex justify-between items-center w-full mt-2" style="margin-top:0;margin-bottom:0;margin-top:0;margin-bottom:0;padding-top:0;padding-bottom:0;"><div class="flex-1 flex gap-4 text-sm font-bold text-black items-center"><div>本金總和：<span id="totalBet">0</span></div><div>獎金總和：<span id="totalWin">0</span></div><div>收支金額：<span id="summaryStats">0</span></div></div><div class="flex-shrink-0 flex gap-2 justify-end"><button class="bg-green-300 hover:bg-green-400 px-2 py-1 rounded" onclick="recordPillarBet()">下注</button><button class="bg-red-300 hover:bg-red-400 px-2 py-1 rounded" onclick="clearAllData()">清空鍵</button></div></div>
+</div></div></div>
+<!-- 獎項統計表 -->
+<!-- 數字盤 -->
+<div class="mt-4 bg-white border rounded shadow p-2">
+<h3 class="font-semibold mb-2">下注紀錄表</h3>
+<table class="w-full text-sm text-center border" id="betHistoryTable">
+<thead class="bg-gray-100">
+<tr>
+<th class="border">次數</th>
+<th class="border">簽注號碼</th>
+<th class="border">下注金</th>
+<th class="border">總獎金</th>
+<th class="border">交收金額</th>
+<th class="border">操作</th>
+</tr>
+</thead>
+<tbody></tbody>
+<tfoot class="bg-yellow-100 font-bold">
+<tr>
+<td class="border" colspan="2">總計</td>
+<td class="border" id="totalBetSum">0</td>
+<td class="border" id="totalRewardSum">0</td>
+<td class="border" id="totalSubtotalSum">0</td>
+<td class="border"></td>
+</tr>
+</tfoot>
+</table>
+<div class="mt-2 flex justify-center gap-1 text-sm" id="paginationControls"></div>
+<div class="mt-2 flex justify-end">
+<button class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 text-sm" onclick="exportBetHistoryToCSV()">匯出 CSV</button>
+</div>
+</div><div class="flex flex-wrap gap-1 w-full mt-4"><button class="h-10 w-12 bg-gray-300 rounded" onclick="handleKeypadInput('30')">30</button><button class="h-10 w-12 bg-gray-300 rounded" onclick="handleKeypadInput('20')">20</button><button class="h-10 w-12 bg-gray-300 rounded" onclick="handleKeypadInput('10')">10</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('1')">1</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('2')">2</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('3')">3</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('4')">4</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('5')">5</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('6')">6</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('7')">7</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('8')">8</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('9')">9</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('0')">0</button><button class="h-10 w-16 bg-blue-200 rounded" onclick="handleKeypadInput('倒退')">倒退鍵</button><button class="h-10 w-16 bg-yellow-200 rounded" onclick="insertOther()">其它</button>
+<button class="h-10 w-12 bg-gray-300 rounded" onclick="handleKeypadInput(',')">,</button></div>
+<script>
+function getValidPillarsFromTable() {
+  const pillars = [];
+  const cells = document.querySelectorAll("#mainTable tbody tr:first-child td");
+  cells.forEach(cell => {
+    const val = cell.innerText.trim();
+    if (val) {
+      const nums = val.split(",").map(x => parseInt(x.trim())).filter(n => !isNaN(n) && n >= 1 && n <= 39);
+      if (nums.length > 0) {
+        pillars.push([nums.length]);
+      }
+    }
+  });
+  return pillars;
+}
+function combine(arr, size) {
+  const result = [];
+  function helper(start, path) {
+    if (path.length === size) {
+      result.push([...path]);
+      return;
+    }
+    for (let i = start; i < arr.length; i++) {
+      helper(i + 1, path.concat([arr[i]]));
+    }
+  }
+  helper(0, []);
+  return result;
+}
+function calculateCrossCounts(pillars, size) {
+  const groups = combine(pillars, size);
+  let total = 0;
+  groups.forEach(group => {
+    total += group.reduce((acc, cur) => acc * cur[0], 1);
+  });
+  return total;
+}
+function calculateSummary() {
+  const pillars = getValidPillarsFromTable();
+  const c2 = calculateCrossCounts(pillars, 2);
+  const c3 = calculateCrossCounts(pillars, 3);
+  const c4 = calculateCrossCounts(pillars, 4);
+
+  const m2 = parseFloat(document.getElementById("m2").value) || 0;
+  const m3 = parseFloat(document.getElementById("m3").value) || 0;
+  const m4 = parseFloat(document.getElementById("m4").value) || 0;
+
+  const a2 = parseFloat(document.getElementById("a2").value) || 0;
+  const a3 = parseFloat(document.getElementById("a3").value) || 0;
+  const a4 = parseFloat(document.getElementById("a4").value) || 0;
+
+  const s2 = c2 * m2;
+  const s3 = c3 * m3;
+  const s4 = c4 * m4;
+
+  const t2 = s2 * a2;
+  const t3 = s3 * a3;
+  const t4 = s4 * a4;
+
+  document.getElementById("c2").innerText = c2;
+  document.getElementById("s2").innerText = s2.toFixed(1);
+  document.getElementById("t2").innerText = Math.round(t2);
+
+  document.getElementById("c3").innerText = c3;
+  document.getElementById("s3").innerText = s3.toFixed(1);
+  document.getElementById("t3").innerText = Math.round(t3);
+
+  document.getElementById("c4").innerText = c4;
+  document.getElementById("s4").innerText = s4.toFixed(1);
+  document.getElementById("t4").innerText = Math.round(t4);
+  document.getElementById("sum2").innerText = Math.round(t2 + (parseFloat(window.w2) || 0));
+  document.getElementById("sum3").innerText = Math.round(t3 + (parseFloat(window.w3) || 0));
+  document.getElementById("sum4").innerText = Math.round(t4 + (parseFloat(window.w4) || 0));
+
+
+  const totalSet = s2 + s3 + s4;
+  const totalBet = Math.ceil(t2 + t3 + t4);
+  updateTotalSummary();
+}
+document.addEventListener("input", calculateSummary);
+
+window.onload = () => {
+  calculateSummary();
+
+  document.querySelectorAll("#mainTable tbody tr:first-child td").forEach(cell => {
+    cell.addEventListener("input", () => {
+      const val = cell.innerText.trim();
+      if (val === "其它") {
+        // 收集所有柱內號碼（不包含當前這格）
+        const pillarCells = document.querySelectorAll("#mainTable tbody tr:first-child td");
+        const usedNumbers = new Set();
+        pillarCells.forEach(c => {
+          if (c !== cell) {
+            const nums = c.innerText
+              .split(",")
+              .map(n => parseInt(n.trim()))
+              .filter(n => !isNaN(n) && n >= 1 && n <= 39);
+            nums.forEach(n => usedNumbers.add(n));
+          }
+        });
+
+        // 產生剩餘號碼並填入
+        const others = [];
+        for (let i = 1; i <= 39; i++) {
+          if (!usedNumbers.has(i)) others.push(i.toString().padStart(2, '0'));
+        }
+
+        cell.innerText = others.join(",");
+        calculateSummary?.();
+      }
+    });
+  });
+
+  ['m2', 'm3', 'm4', 'a2', 'a3', 'a4'].forEach(id => {
+    const input = document.getElementById(id);
+    input.addEventListener('focus', () => {
+      if (currentTarget && currentTarget.classList) currentTarget.classList.remove("selected");
+      currentTarget = input;
+    });
+  });
+};
+
+</script>
+<script>
+function insertOther() {
+  const pillarCells = document.querySelectorAll("#mainTable tbody tr:first-child td");
+  if (!pillarCells.length) return;
+
+  // 收集所有柱內已填入的號碼
+  const usedNumbers = new Set();
+  pillarCells.forEach(cell => {
+    const nums = cell.innerText
+      .split(",")
+      .map(n => parseInt(n.trim()))
+      .filter(n => !isNaN(n) && n >= 1 && n <= 39);
+    nums.forEach(n => usedNumbers.add(n));
+  });
+
+  // 產生未出現過的號碼
+  const others = [];
+  for (let i = 1; i <= 39; i++) {
+    if (!usedNumbers.has(i)) others.push(i.toString().padStart(2, '0'));
+  }
+
+  // 填入當前選定的格子
+  if (currentTarget && currentTarget.tagName !== "INPUT") {
+    currentTarget.innerText = others.join(",");
+    calculateSummary?.();
+  }
+}
+</script>
+<script>
+function checkMatch() {
+  const drawStr = document.getElementById("drawNumbers").value;
+  const drawNums = drawStr
+    .split(",")
+    .map(x => parseInt(x.trim()))
+    .filter(n => !isNaN(n));
+
+  const matchedSet = new Set();
+
+  const cells = document.querySelectorAll("#mainTable tbody tr:first-child td");
+  cells.forEach(cell => {
+    const text = cell.innerText.trim();
+    const nums = text
+      .split(",")
+      .map(n => parseInt(n.trim()))
+      .filter(n => !isNaN(n));
+
+    const display = nums.map(n => {
+      if (drawNums.includes(n)) {
+        matchedSet.add(n);
+        return `<span class="text-red-500">${n}</span>`;
+  updateTotalSummary();
+} else {
+        return n;
+      }
+    });
+
+    cell.innerHTML = display.join(",");
+  });
+
+  document.getElementById("matchSummary").innerText = matchedSet.size;
+  calculateWinningCombos();
+}
+</script><script>
+});
+
+  // 清除獎金欄位
+  ["w2", "w3", "w4"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.innerText = "0";
+      el.style.color = "black";
+    }
+  });
+
+  // 清除獎金總和與收支金額
+  const winElem = document.getElementById("totalWin");
+  if (winElem) {
+    winElem.innerText = "0";
+    winElem.style.color = "black";
+  }
+
+  const receiveElem = document.getElementById("summaryStats");
+  if (receiveElem) {
+    receiveElem.innerText = "收支金額：0";
+    receiveElem.style.color = "black";
+  }
+
+}
+  });
+
+  // 清除總和區域
+  document.getElementById("totalBet").innerText = "0";
+  document.getElementById("totalWin").innerText = "0";
+  document.getElementById("totalWin").style.color = "black";
+  const receiveElem = document.getElementById("summaryStats");
+  receiveElem.innerText = "收支金額：0";
+  receiveElem.style.color = "black";
+
+});
+
+  // 清除統計表倍數欄 (m2/m3/m4)，保留注金 (a2/a3/a4)
+  ['m2', 'm3', 'm4'].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.value = "";
+  });
+
+  // 清除命中顯示
+  document.getElementById("matchSummary").innerText = "0";
+  
+  
+  // 清除中獎數
+  document.querySelector("#summaryTable tbody tr:nth-child(1) td:nth-last-child(3)").innerText = "0";
+  document.querySelector("#summaryTable tbody tr:nth-child(2) td:nth-last-child(3)").innerText = "0";
+  document.querySelector("#summaryTable tbody tr:nth-child(3) td:nth-last-child(3)").innerText = "0";
+// 清除獎金
+  
+let w2_display = (w2 === 0) ? 0 : w2;
+document.getElementById("w2").innerText = w2_display.toLocaleString();
+document.getElementById("w2").style.color = w2_display < 0 ? "red" : "black"; document.getElementById("w2").style.color = w2 < 0 ? "red" : "black"; document.getElementById("w2").style.color = w2 < 0 ? "red" : "black";
+  
+let w3_display = (w3 === 0) ? 0 : w3;
+document.getElementById("w3").innerText = w3_display.toLocaleString();
+document.getElementById("w3").style.color = w3_display < 0 ? "red" : "black"; document.getElementById("w3").style.color = w3 < 0 ? "red" : "black"; document.getElementById("w3").style.color = w3 < 0 ? "red" : "black";
+  
+let w4_display = (w4 === 0) ? 0 : w4;
+document.getElementById("w4").innerText = w4_display.toLocaleString();
+document.getElementById("w4").style.color = w4_display < 0 ? "red" : "black";
+document.getElementById("w4").style.color = w4 < 0 ? "red" : "black";
+
+  // ✅ 小計 = 本金 + 獎金（負數）
+  const tList = [parseFloat(document.getElementById("t2").innerText.replace(/,/g, '')) || 0,
+                 parseFloat(document.getElementById("t3").innerText.replace(/,/g, '')) || 0,
+                 parseFloat(document.getElementById("t4").innerText.replace(/,/g, '')) || 0];
+  const wList = [w2, w3, w4];
+  const sumIds = ["sum2", "sum3", "sum4"];
+  for (let i = 0; i < 3; i++) {
+    const subtotal = tList[i] + wList[i];
+    const cell = document.getElementById(sumIds[i]);
+    cell.innerText = subtotal.toLocaleString();
+    cell.style.color = subtotal < 0 ? 'red' : 'black';
+  }
+ document.getElementById("w4").style.color = w4 < 0 ? "red" : "black";
+
+  // 清除中獎數欄位
+  document.querySelector("#summaryTable tbody tr:nth-child(1) td:last-child").innerText = "0";
+  document.querySelector("#summaryTable tbody tr:nth-child(2) td:last-child").innerText = "0";
+  document.querySelector("#summaryTable tbody tr:nth-child(3) td:last-child").innerText = "0";
+
+
+  // 重新計算
+  calculateSummary?.();
+}
+</script><script>
+let currentTarget = null;
+
+function selectCell(cell) {
+  if (currentTarget && currentTarget.classList) currentTarget.classList.remove("selected");
+  currentTarget = cell;
+  if (cell.classList) cell.classList.add("selected");
+}
+
+function selectDrawInput() {
+  if (currentTarget && currentTarget.classList) currentTarget.classList.remove("selected");
+  currentTarget = document.getElementById("drawNumbers");
+  currentTarget.classList?.add("selected");
+}
+
+
+function updateTotalSummary() {
+  const t2_val = parseFloat(document.getElementById("t2").innerText.replace(/,/g, '')) || 0;
+  const t3_val = parseFloat(document.getElementById("t3").innerText.replace(/,/g, '')) || 0;
+  const t4_val = parseFloat(document.getElementById("t4").innerText.replace(/,/g, '')) || 0;
+  const totalBase = t2_val + t3_val + t4_val;
+  document.getElementById("totalBet").innerText = totalBase.toLocaleString();
+
+  const w2_val = parseFloat(document.getElementById("w2").innerText.replace(/,/g, '')) || 0;
+  const w3_val = parseFloat(document.getElementById("w3").innerText.replace(/,/g, '')) || 0;
+  const w4_val = parseFloat(document.getElementById("w4").innerText.replace(/,/g, '')) || 0;
+
+  const sum2_val = parseFloat(document.getElementById("sum2").innerText.replace(/,/g, '')) || 0;
+  const sum3_val = parseFloat(document.getElementById("sum3").innerText.replace(/,/g, '')) || 0;
+  const sum4_val = parseFloat(document.getElementById("sum4").innerText.replace(/,/g, '')) || 0;
+
+  const totalWin = w2_val + w3_val + w4_val;
+  const totalReceive = sum2_val + sum3_val + sum4_val;
+
+  // 顯示獎金總和（紅字負數）
+  const winElem = document.getElementById("totalWin");
+  winElem.innerText = totalWin.toLocaleString();
+  winElem.style.color = totalWin < 0 ? "red" : "black";
+
+  // 顯示應收金額（紅字負數）
+  const receiveElem = document.getElementById("summaryStats");
+  receiveElem.innerHTML = '收支金額：' + (totalReceive < 0 ? '<span style="color:red">-' + Math.abs(totalReceive).toLocaleString() + '</span>' : '<span style="color:black">' + totalReceive.toLocaleString() + '</span>');
+  receiveElem.style.color = "black";
+}
+
+
+</script><script>
+function calculateWinningCombos() {
+  const drawStr = document.getElementById("drawNumbers").value;
+  const drawNums = drawStr.split(",").map(x => parseInt(x.trim())).filter(n => !isNaN(n));
+  if (drawNums.length < 2) return;
+
+  const cells = document.querySelectorAll("#mainTable tbody tr:first-child td");
+  const pillars = [];
+  cells.forEach(cell => {
+    const nums = cell.innerText.trim().split(",").map(x => parseInt(x.trim())).filter(n => !isNaN(n));
+    if (nums.length) pillars.push(nums);
+  updateTotalSummary();
+});
+
+  function combineFromDifferentPillars(pillars, size) {
+    const result = [];
+    function helper(start, path) {
+      if (path.length === size) {
+        result.push([...path]);
+        return;
+      }
+      for (let i = start; i < pillars.length; i++) {
+        for (let n of pillars[i]) {
+          helper(i + 1, path.concat([n]));
+        }
+      }
+    }
+    helper(0, []);
+    return result;
+  }
+
+  function countWinningCombos(size) {
+    const combos = combineFromDifferentPillars(pillars, size);
+    let count = 0;
+    combos.forEach(combo => {
+      const set = new Set(combo);
+      if (set.size === combo.length && combo.every(n => drawNums.includes(n))) {
+        count++;
+      }
+    });
+    return count;
+  }
+
+  const c2 = countWinningCombos(2);
+  const c3 = countWinningCombos(3);
+  const c4 = countWinningCombos(4);
+
+  
+  document.querySelector("#summaryTable tbody tr:nth-child(1) td:nth-last-child(3)").innerText = c2;
+  document.querySelector("#summaryTable tbody tr:nth-child(2) td:nth-last-child(3)").innerText = c3;
+  document.querySelector("#summaryTable tbody tr:nth-child(3) td:nth-last-child(3)").innerText = c4;
+  document.querySelector("#summaryTable tbody tr:nth-child(1) td:nth-last-child(2)").innerText = c2;
+  document.querySelector("#summaryTable tbody tr:nth-child(2) td:nth-last-child(2)").innerText = c3;
+  document.querySelector("#summaryTable tbody tr:nth-child(3) td:nth-last-child(2)").innerText = c4;
+
+  const m2 = parseFloat(document.getElementById("m2").value) || 0;
+  const m3 = parseFloat(document.getElementById("m3").value) || 0;
+  const m4 = parseFloat(document.getElementById("m4").value) || 0;
+
+  window.w2 = -(c2 * m2 * 5300);
+  window.w3 = -(c3 * m3 * 57000);
+  window.w4 = -(c4 * m4 * 800000);
+
+  
+let w2_display = (w2 === 0) ? 0 : w2;
+document.getElementById("w2").innerText = w2_display.toLocaleString();
+document.getElementById("w2").style.color = w2_display < 0 ? "red" : "black"; document.getElementById("w2").style.color = w2 < 0 ? "red" : "black"; document.getElementById("w2").style.color = w2 < 0 ? "red" : "black"; document.getElementById("w2").style.color = (-w2) < 0 ? "red" : "black";
+  
+let w3_display = (w3 === 0) ? 0 : w3;
+document.getElementById("w3").innerText = w3_display.toLocaleString();
+document.getElementById("w3").style.color = w3_display < 0 ? "red" : "black"; document.getElementById("w3").style.color = w3 < 0 ? "red" : "black"; document.getElementById("w3").style.color = w3 < 0 ? "red" : "black"; document.getElementById("w3").style.color = (-w3) < 0 ? "red" : "black";
+  
+let w4_display = (w4 === 0) ? 0 : w4;
+document.getElementById("w4").innerText = w4_display.toLocaleString();
+document.getElementById("w4").style.color = w4_display < 0 ? "red" : "black";
+document.getElementById("w4").style.color = w4 < 0 ? "red" : "black";
+
+  // ✅ 小計 = 本金 + 獎金（負數）
+  const tList = [parseFloat(document.getElementById("t2").innerText.replace(/,/g, '')) || 0,
+                 parseFloat(document.getElementById("t3").innerText.replace(/,/g, '')) || 0,
+                 parseFloat(document.getElementById("t4").innerText.replace(/,/g, '')) || 0];
+  const wList = [w2, w3, w4];
+  const sumIds = ["sum2", "sum3", "sum4"];
+  for (let i = 0; i < 3; i++) {
+    const subtotal = tList[i] + wList[i];
+    const cell = document.getElementById(sumIds[i]);
+    cell.innerText = subtotal.toLocaleString();
+    cell.style.color = subtotal < 0 ? 'red' : 'black';
+  }
+ document.getElementById("w4").style.color = w4 < 0 ? "red" : "black"; document.getElementById("w4").style.color = (-w4) < 0 ? "red" : "black";
+}
+
+function clearAllData() {
+  document.getElementById("drawNumbers").value = "";
+  document.querySelectorAll("#mainTable tbody tr:first-child td").forEach(cell => {
+    cell.innerText = "";
+  });
+
+  ['m2', 'm3', 'm4'].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.value = "";
+  });
+
+  ['w2', 'w3', 'w4', 't2', 't3', 't4', 'sum2', 'sum3', 'sum4'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.innerText = "0";
+      el.style.color = "black";
+    }
+  });
+
+  for (let i = 1; i <= 3; i++) {
+    const row = document.querySelector(`#summaryTable tbody tr:nth-child(${i})`);
+    if (row) {
+      row.children[6].innerText = "0";
+    }
+  }
+
+  document.getElementById("totalBet").innerText = "0";
+  document.getElementById("totalWin").innerText = "0";
+  document.getElementById("totalWin").style.color = "black";
+  document.getElementById("summaryStats").innerText = "收支金額：0";
+  document.getElementById("summaryStats").style.color = "black";
+  document.getElementById("matchSummary").innerText = "0";
+
+  window.w2 = 0;
+  window.w3 = 0;
+  window.w4 = 0;
+
+  calculateSummary?.();
+}
+</script>
+<script>
+function calculateFullCar() {
+  const betCount = parseFloat(document.getElementById('betCount').value) || 0;
+  const carCount = parseFloat(document.getElementById('carCount').value) || 0;
+  const amountPerCar = parseFloat(document.getElementById('amountPerCar').value) || 0;
+  const rewardPerCar = 21200;
+  const linesPerCar = 38;
+
+  const totalCost = betCount * carCount * amountPerCar * linesPerCar;
+  const totalReward = betCount * carCount * rewardPerCar;
+  const netProfit = totalReward - totalCost;
+  const totalLines = betCount * carCount * linesPerCar;
+
+  document.getElementById('totalLines').textContent = Math.round(totalLines);
+  document.getElementById('totalCost').textContent = Math.round(totalCost);
+  document.getElementById('totalReward').textContent = Math.round(totalReward);
+  document.getElementById('netProfit').textContent = Math.round(netProfit);
+}
+function resetFullCar() {
+  document.getElementById('betCount').value = '';
+  document.getElementById('carCount').value = '';
+  document.getElementById('amountPerCar').value = '';
+  document.getElementById('totalLines').textContent = '0';
+  document.getElementById('totalCost').textContent = '0';
+  document.getElementById('totalReward').textContent = '0';
+  document.getElementById('netProfit').textContent = '0';
+}
+</script>
+<script>
+function updateFullCarInfo() {
+  const inputElem = document.getElementById("betCount");
+  const rawInput = inputElem.value;
+  const carCount = parseFloat(document.getElementById("carCount").value) || 0;
+  const amountPerCar = parseFloat(document.getElementById("amountPerCar").value) || 74;
+  const drawInput = document.getElementById("drawNumbers").value;
+
+  const drawNumbers = drawInput
+    .split(",")
+    .map(s => parseInt(s.trim()))
+    .filter(n => !isNaN(n));
+
+  const betNumbers = rawInput
+    .split(",")
+    .map(s => parseInt(s.trim()))
+    .filter(n => !isNaN(n) && n >= 1 && n <= 39);
+
+  const matchNumbers = betNumbers.filter(n => drawNumbers.includes(n));
+  const matchCount = matchNumbers.length;
+
+  const displayDiv = document.getElementById("betDisplay");
+  if (drawNumbers.length > 0 && betNumbers.length > 0) {
+    const formatted = betNumbers
+      .map(n => drawNumbers.includes(n)
+        ? `<span class='text-red-500 font-bold'>${n}</span>`
+        : `<span>${n}</span>`)
+      .join(", ");
+    displayDiv.innerHTML = "中籤：" + formatted;
+  } else {
+    displayDiv.innerHTML = "";
+  }
+
+  const linesPerCar = 38;
+  const totalLines = betNumbers.length * carCount * linesPerCar;
+  const totalCost = totalLines * amountPerCar;
+
+  const unitReward = 21200;
+  const totalReward = -1 * matchCount * carCount * unitReward;
+  const netProfit = totalReward + totalCost;
+
+  document.getElementById("totalLines").textContent = Math.round(totalLines);
+  document.getElementById("totalCost").textContent = Math.round(totalCost);
+  document.getElementById("totalReward").textContent = totalReward;
+  document.getElementById("netProfit").textContent = Math.round(netProfit);
+
+  document.getElementById("totalCost").style.color = "black";
+  document.getElementById("totalReward").style.color = totalReward < 0 ? "red" : "black";
+  document.getElementById("netProfit").style.color = netProfit < 0 ? "red" : "black";
+}
+</script>
+<script>function clearFullCarTable() {
+  // 清除柱數輸入格（保留為 input 欄位，清除內容即可）
+  const betInput = document.getElementById("betCount");
+  if (betInput) betInput.value = "";
+
+  // 清除命中顯示區域
+  const betDisplay = document.getElementById("betDisplay");
+  if (betDisplay) betDisplay.innerHTML = "";
+
+  // 清除車數
+  const carElem = document.getElementById("carCount");
+  if (carElem) carElem.value = "";
+
+  // 保留每注金額不變
+
+  // 清除統計顯示欄位
+  const fields = ["totalLines", "totalCost", "totalReward", "netProfit", "matchSummary"];
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = "0";
+  });
+}</script>
+<script>
+function checkMatchAndRecord() {
+  checkMatch();  // 執行命中標記與計算邏輯
+  const shouldClear = document.getElementById("clearHistoryCheckbox")?.checked;
+  if (shouldClear) clearBetHistoryTable();
+    // 記錄全車區結果
+  
+  recheckAllFullcarBets();
+  recheckAllPillarBets();   // 記錄柱碰區結果
+}
+
+function clearBetHistoryTable() {
+  const tbody = document.querySelector("#betHistoryTable tbody");
+  tbody.innerHTML = "";
+  betRecordCount = 1;
+}
+
+let betRecordCount = 1;
+
+function recordBet() {
+  const fullcarNumbers = document.getElementById("betCount").value.trim();
+  const tableCells = document.querySelectorAll("#mainTable tbody tr:first-child td");
+  let pillarNumbers = [];
+  tableCells.forEach(cell => {
+    const val = cell.innerText.trim();
+    if (val) pillarNumbers.push(val);
+  });
+  const signedNumbers = `全車:${fullcarNumbers} / 柱表:${pillarNumbers.join(" | ")}`;
+
+  const fullcarBet = parseFloat(document.getElementById("totalCost").textContent) || 0;
+  const t2 = parseFloat(document.getElementById("t2").textContent) || 0;
+  const t3 = parseFloat(document.getElementById("t3").textContent) || 0;
+  const t4 = parseFloat(document.getElementById("t4").textContent) || 0;
+  const totalBet = fullcarBet + t2 + t3 + t4;
+
+  const r2 = parseFloat(document.getElementById("w2").textContent.replace(/,/g, '')) || 0;
+  const r3 = parseFloat(document.getElementById("w3").textContent.replace(/,/g, '')) || 0;
+  const r4 = parseFloat(document.getElementById("w4").textContent.replace(/,/g, '')) || 0;
+  const rFullcar = parseFloat(document.getElementById("totalReward").textContent) || 0;
+  const totalReward = r2 + r3 + r4 + rFullcar;
+
+  const subtotal = totalBet + totalReward;
+
+  const tbody = document.querySelector("#betHistoryTable tbody");
+  
+    const row = document.createElement("tr");
+    row.setAttribute("data-m" + cfg.id, multiplier);  // 儲存倍數供對獎時使用
+    
+  row.innerHTML = `
+    <td class="border">${betRecordCount}</td>
+    <td class="border text-left">${signedNumbers}</td>
+    <td class="border">${totalBet}</td>
+    <td class="border">${totalReward}</td>
+    <td class="border" style="color:${subtotal < 0 ? 'red' : 'black'}">${subtotal}</td>
+    <td class="border"><button class="bg-red-400 text-white px-2 rounded" onclick="deleteBetRow(this)">刪除</button></td>
+  `;
+  tbody.appendChild(row);
+  betRecordCount++;
+
+  updateBetTotals();
+  reorderBetHistoryIndex();
+}
+
+function deleteBetRow(button) {
+  const row = button.closest("tr");
+  row.remove();
+
+  const rows = document.querySelectorAll("#betHistoryTable tbody tr");
+  rows.forEach((r, i) => {
+    r.children[0].textContent = i + 1;
+  });
+  betRecordCount = rows.length + 1;
+
+  updateBetTotals();
+  reorderBetHistoryIndex();
+}
+
+
+function updateBetTotals() {
+  const rows = document.querySelectorAll("#betHistoryTable tbody tr");
+  let totalBet = 0, totalReward = 0, totalSubtotal = 0;
+  rows.forEach(row => {
+    totalBet += parseFloat(row.children[2].textContent.replace(/,/g, '')) || 0;
+    totalReward += parseFloat(row.children[3].textContent.replace(/,/g, '')) || 0;
+    totalSubtotal += parseFloat(row.children[4].textContent.replace(/,/g, '').replace(/[^-\d.]/g, '')) || 0;
+  });
+
+  document.getElementById("totalBetSum").textContent = totalBet.toLocaleString();
+  document.getElementById("totalRewardSum").textContent = totalReward.toLocaleString();
+  document.getElementById("totalSubtotalSum").textContent = totalSubtotal.toLocaleString();
+  document.getElementById("totalSubtotalSum").style.color = totalSubtotal < 0 ? "red" : "black";
+}
+
+
+function recheckAllFullcarBets() {
+  const drawStr = document.getElementById("drawNumbers").value;
+  const drawNums = drawStr.split(",").map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+  if (drawNums.length === 0) return;
+
+  const rows = document.querySelectorAll("#betHistoryTable tbody tr");
+  rows.forEach(row => {
+    const descCell = row.children[1];
+    if (!descCell.innerText.startsWith("全車:")) return;
+
+    const numText = descCell.innerText.replace("全車:", "").trim();
+    const betNumbers = numText.split(",").map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+    const matchCount = betNumbers.filter(n => drawNums.includes(n)).length;
+
+    const carCount = parseFloat(document.getElementById("carCount").value) || 1;
+    const unitReward = 21200;
+
+    const reward = -1 * matchCount * carCount * unitReward;
+    const bet = parseFloat(row.children[2].innerText) || 0;
+    const subtotal = bet + reward;
+
+    row.children[3].innerText = reward;
+    row.children[4].innerText = subtotal;
+    row.children[4].style.color = subtotal < 0 ? "red" : "black";
+  });
+
+  updateBetTotals();
+  reorderBetHistoryIndex();
+}
+
+function recheckAllPillarBets() {
+  const drawStr = document.getElementById("drawNumbers").value;
+  const drawNums = drawStr.split(",").map(x => parseInt(x.trim())).filter(n => !isNaN(n));
+  if (drawNums.length === 0) return;
+
+  const multiplier = {
+    2: parseFloat(document.getElementById("m2").value) || 0,
+    3: parseFloat(document.getElementById("m3").value) || 0,
+    4: parseFloat(document.getElementById("m4").value) || 0
+  };
+
+  const rewardPerCombo = {
+    2: 5300,
+    3: 57000,
+    4: 800000
+  };
+
+  const rows = document.querySelectorAll("#betHistoryTable tbody tr");
+  rows.forEach(row => {
+    const descCell = row.children[1];
+    if (!descCell.innerText.startsWith("柱表:")) return;
+
+    const raw = descCell.innerText.replace("柱表:", "").trim();
+    const pillarGroups = raw.split("|").map(group => {
+      return group.split(",").map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+    });
+
+    function combinePillars(pillars, size) {
+      const result = [];
+      function helper(start, path) {
+        if (path.length === size) {
+          result.push([...path]);
+          return;
+        }
+        for (let i = start; i < pillars.length; i++) {
+          for (let n of pillars[i]) {
+            helper(i + 1, path.concat([n]));
+          }
+        }
+      }
+      helper(0, []);
+      return result;
+    }
+
+    function countHits(size) {
+      const combos = combinePillars(pillarGroups, size);
+      let count = 0;
+      combos.forEach(combo => {
+        const set = new Set(combo);
+        if (set.size === combo.length && combo.every(n => drawNums.includes(n))) {
+          count++;
+        }
+      });
+      return count;
+    }
+
+    const c2 = countHits(2);
+    const c3 = countHits(3);
+    const c4 = countHits(4);
+
+    const totalReward = -1 * (
+      c2 * multiplier[2] * rewardPerCombo[2] +
+      c3 * multiplier[3] * rewardPerCombo[3] +
+      c4 * multiplier[4] * rewardPerCombo[4]
+    );
+
+    const bet = parseFloat(row.children[2].innerText) || 0;
+    const subtotal = bet + totalReward;
+
+    row.children[3].innerText = totalReward;
+    row.children[4].innerText = subtotal;
+    row.children[4].style.color = subtotal < 0 ? "red" : "black";
+  });
+
+  updateBetTotals();
+  reorderBetHistoryIndex();
+}
+</script><script>
+document.addEventListener("DOMContentLoaded", function() {
+  const drawInput = document.getElementById("drawNumbers");
+  if (drawInput) {
+    drawInput.addEventListener("input", function () {
+      checkMatch?.();
+    });
+  }
+});
+</script>
+<script>
+
+
+function recheckBetHistory() {
+  const drawStr = document.getElementById("drawNumbers").value;
+  const drawNums = drawStr.split(",").map(x => parseInt(x.trim())).filter(n => !isNaN(n));
+  const rows = document.querySelectorAll("#betHistoryTable tbody tr");
+
+  rows.forEach(row => {
+    const descCell = row.children[1];
+    const rawContent = descCell.getAttribute("data-raw");
+    if (!rawContent) return;
+
+    const betType = rawContent.includes("全車") ? "全車" : "柱碰";
+    let raw = rawContent.replace(/命中:.*/, "").trim();
+    let reward = 0;
+
+    if (betType === "全車") {
+      const numbers = raw.replace("全車:", "").split(",").map(x => parseInt(x.trim())).filter(n => !isNaN(n));
+      const html = "全車: " + numbers.map(n => drawNums.includes(n)
+        ? `<span class='text-red-500 font-bold'>${n}</span>`
+        : n).join(",");
+      descCell.innerHTML = html;
+
+      const matchCount = numbers.filter(n => drawNums.includes(n)).length;
+      const carCount = parseFloat(document.getElementById("carCount").value) || 1;
+      reward = -1 * matchCount * carCount * 21200;
+
+    } else {
+      const parts = raw.split(":");
+      const label = parts[0];  // 二星/三星/四星
+      const groups = parts[1].trim().split("|").map(group =>
+        group.split(",").map(n => parseInt(n.trim())).filter(n => !isNaN(n))
+      );
+      const html = label + ": " + groups.map(group =>
+        group.map(n => drawNums.includes(n)
+          ? `<span class='text-red-500 font-bold'>${n}</span>`
+          : n
+        ).join(",")
+      ).join(" | ");
+      descCell.innerHTML = html;
+
+      function combinePillars(pillars, size) {
+        const result = [];
+        function helper(start, path) {
+          if (path.length === size) {
+            result.push([...path]);
+            return;
+          }
+          for (let i = start; i < pillars.length; i++) {
+            for (let n of pillars[i]) {
+              helper(i + 1, path.concat([n]));
+            }
+          }
+        }
+        helper(0, []);
+        return result;
+      }
+
+      function countHits(size) {
+        const combos = combinePillars(groups, size);
+        let count = 0;
+        combos.forEach(combo => {
+          const set = new Set(combo);
+          if (set.size === combo.length && combo.every(n => drawNums.includes(n))) {
+            count++;
+          }
+        });
+        return count;
+      }
+
+      const m2 = parseFloat(document.getElementById("m2").value) || 0;
+      const m3 = parseFloat(document.getElementById("m3").value) || 0;
+      const m4 = parseFloat(document.getElementById("m4").value) || 0;
+
+      const c2 = countHits(2);
+      const c3 = countHits(3);
+      const c4 = countHits(4);
+
+      const r2 = c2 * m2 * 5300;
+      const r3 = c3 * m3 * 57000;
+      const r4 = c4 * m4 * 800000;
+      reward = -(r2 + r3 + r4);
+    }
+
+    const bet = parseFloat(row.children[2].innerText.replace(/,/g, "")) || 0;
+    const subtotal = bet + reward;
+    row.children[3].innerText = reward.toLocaleString();
+    row.children[4].innerText = subtotal.toLocaleString();
+    row.children[4].style.color = subtotal < 0 ? "red" : "black";
+  });
+
+  updateBetTotals();
+  reorderBetHistoryIndex();
+}
+
+
+
+// 將原本 checkMatch 增加呼叫 recheckBetHistory
+const originalCheckMatch = checkMatch;
+checkMatch = function() {
+  originalCheckMatch();
+  recheckBetHistory();
+};
+</script>
+<script>
+
+function reorderBetHistoryIndex() {
+  const rows = document.querySelectorAll("#betHistoryTable tbody tr");
+  rows.forEach((row, index) => {
+    row.cells[0].textContent = index + 1;
+  });
+}
+
+function recordFullcarBet() {
+  const table = document.getElementById("betHistoryTable").getElementsByTagName("tbody")[0];
+  const betStr = document.getElementById("betCount").value.trim() || "無資料";
+  const betNumbers = betStr.split(",").map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+
+  const totalCost = parseFloat(document.getElementById("totalCost").innerText.replace(/,/g, "")) || 0;
+  const totalReward = parseFloat(document.getElementById("totalReward").innerText.replace(/,/g, "")) || 0;
+  const netProfit = parseFloat(document.getElementById("netProfit").innerText.replace(/,/g, "")) || 0;
+  const count = table.rows.length + 1;
+
+  let displayNums = betNumbers.map(n => {
+    return `<span>${n}</span>`;
+  }).join(",");
+
+  const row = table.insertRow(0);
+  row.insertCell(0).innerText = count;
+  row.insertCell(1).innerHTML = '全車: ' + displayNums;
+  row.cells[1].setAttribute('data-raw', '全車: ' + betNumbers.join(','));
+  row.insertCell(2).innerText = totalCost.toLocaleString();
+  row.insertCell(3).innerText = totalReward.toLocaleString();
+  row.insertCell(4).innerText = netProfit.toLocaleString();
+
+  const deleteCell = row.insertCell(5);
+  const deleteBtn = document.createElement("button");
+  deleteBtn.innerText = "刪除";
+  deleteBtn.className = "bg-red-500 text-white px-2 py-1 rounded text-sm";
+  deleteBtn.onclick = function () {
+    row.remove();
+    updateBetTotals();
+  reorderBetHistoryIndex();
+  };
+  deleteCell.appendChild(deleteBtn);
+
+  updateBetTotals();
+  reorderBetHistoryIndex();
+}
+</script>
+<script>
+function getDrawNumbers() {
+  const drawInput = document.getElementById("drawNumbers").value.trim();
+  return drawInput ? drawInput.split(",").map(n => parseInt(n.trim())).filter(n => !isNaN(n)) : [];
+}
+
+function recheckAllBets() {
+  const drawNumbers = getDrawNumbers();
+  if (drawNumbers.length === 0) {
+    alert("請先輸入開獎號碼！");
+    return;
+  }
+
+  
+  const typeNumMap = { "二星": 2, "三星": 3, "四星": 4 };
+  const rewardUnits = {
+    "二星": 5300,
+    "三星": 57000,
+    "四星": 800000
+  };
+
+  const table = document.getElementById("betHistoryTable").getElementsByTagName("tbody")[0];
+  Array.from(table.rows).forEach(row => {
+    const typeCell = row.cells[1];
+    const typeMatch = typeCell.innerText.match(/^(二星|三星|四星)/);
+    if (!typeMatch) return;
+
+    const type = typeMatch[1];
+    const rewardUnit = rewardUnits[type];
+    const text = typeCell.innerText;
+    const comboMatch = text.match(/: (.+?)(（|$)/);
+    if (!comboMatch) return;
+
+    const combos = comboMatch[1].split("|").map(s => s.trim().split(",").map(n => parseInt(n.trim())).filter(n => !isNaN(n)));
+    const hitCombos = combos.filter(c => {
+      const set = new Set(c);
+      return set.size === c.length && c.every(n => drawNumbers.includes(n));
+    });
+
+    const displayCombos = hitCombos.length > 0
+      ? hitCombos.map(c => c.join(",")).join(" | ") + `（命中 ${hitCombos.length} 組）`
+      : combos.map(c => c.join(",")).join(" | ") + "（未中獎）";
+
+    typeCell.innerText = `${type}: ${displayCombos}`;
+
+    const betAmount = parseFloat(row.cells[2].innerText.replace(/,/g, '')) || 0;
+    const reward = hitCombos.length * rewardUnit;
+    const net = reward - betAmount;
+
+    row.cells[3].innerText = reward.toLocaleString();
+    row.cells[4].innerText = (betAmount - payoutMultiplied).toLocaleString();
+  });
+
+  updateBetTotals();
+  reorderBetHistoryIndex();
+}
+</script>
+<script>
+function recheckAllBets() {
+  const drawInput = document.getElementById("drawNumbers").value.trim();
+  const drawNumbers = drawInput ? drawInput.split(",").map(n => parseInt(n.trim())).filter(n => !isNaN(n)) : [];
+  if (drawNumbers.length === 0) {
+    alert("請先輸入開獎號碼！");
+    return;
+  }
+
+  
+  const typeNumMap = { "二星": 2, "三星": 3, "四星": 4 };
+  const rewardUnits = {
+    "二星": 5300,
+    "三星": 57000,
+    "四星": 800000
+  };
+
+  const table = document.getElementById("betHistoryTable").getElementsByTagName("tbody")[0];
+  Array.from(table.rows).forEach(row => {
+    const typeCell = row.cells[1];
+    const typeMatch = typeCell.innerText.match(/^(二星|三星|四星)/);
+    if (!typeMatch) return;
+
+    const type = typeMatch[1];
+    const rewardUnit = rewardUnits[type];
+    const text = typeCell.innerText;
+    const comboMatch = text.match(/: (.+?)(（|$)/);
+    if (!comboMatch) return;
+
+    const combos = comboMatch[1].split("|").map(s => s.trim().split(",").map(n => parseInt(n.trim())).filter(n => !isNaN(n)));
+    const hitCombos = combos.filter(c => {
+      const set = new Set(c);
+      return set.size === c.length && c.every(n => drawNumbers.includes(n));
+    });
+
+    const displayCombos = hitCombos.length > 0
+      ? hitCombos.map(c => c.join(",")).join(" | ") + `（命中 ${hitCombos.length} 組）`
+      : combos.map(c => c.join(",")).join(" | ") + "（未中獎）";
+
+    typeCell.innerHTML = `${type}: ${displayCombos}<br><span class='text-sm text-gray-400'>開獎:${drawInput}</span>`;
+
+    const betAmount = parseFloat(row.cells[2].innerText.replace(/,/g, '')) || 0;
+    const payout = hitCombos.length * rewardUnit;
+    const net = betAmount - payout;
+
+    
+    const multiplierAttr = row.getAttribute("data-m" + typeNumMap[type]);
+    const multiplier = parseFloat(multiplierAttr) || 1;
+    const payoutMultiplied = hitCombos.length * rewardUnit * multiplier;
+    row.cells[3].innerText = "-" + payoutMultiplied.toLocaleString();
+    
+    row.cells[4].innerText = (betAmount - payoutMultiplied).toLocaleString();
+
+    // 樣式更新
+    row.cells[3].style.color = payout > 0 ? "red" : "black";
+    row.cells[4].style.color = net < 0 ? "red" : "black";
+  });
+
+  updateBetTotals();
+  reorderBetHistoryIndex();
+}
+</script>
+
+
+<script>
+function getCurrentBetIndex() {
+  const rows = document.querySelectorAll("#betHistoryTable tbody tr");
+  return rows.length + 1;
+}
+
+function recordPillarBet() {
+  const m2 = parseFloat(document.getElementById("m2").value) || 0;
+  const m3 = parseFloat(document.getElementById("m3").value) || 0;
+  const m4 = parseFloat(document.getElementById("m4").value) || 0;
+  if (m2 <= 0 && m3 <= 0 && m4 <= 0) {
+    alert("請至少填寫一組下注倍數！");
+    return;
+  }
+
+  const table = document.getElementById("betHistoryTable").getElementsByTagName("tbody")[0];
+  const drawNumbers = document.getElementById("drawNumbers").value.trim();
+
+  const cells = document.querySelectorAll("#mainTable tbody tr:first-child td");
+  let pillars = [];
+  cells.forEach(cell => {
+    const val = cell.innerText.trim();
+    const nums = val.split(",").map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+    if (nums.length) pillars.push(nums);
+  });
+
+  const config = [
+    { id: 2, name: "二星", multiplierId: "m2", unitId: "a2", countId: "c2", rewardUnit: 5300 },
+    { id: 3, name: "三星", multiplierId: "m3", unitId: "a3", countId: "c3", rewardUnit: 57000 },
+    { id: 4, name: "四星", multiplierId: "m4", unitId: "a4", countId: "c4", rewardUnit: 800000 },
+  ];
+
+  config.forEach(cfg => {
+    const multiplier = parseFloat(document.getElementById(cfg.multiplierId).value) || 0;
+    const unitAmount = parseFloat(document.getElementById(cfg.unitId).value) || 0;
+    const combos = parseFloat(document.getElementById(cfg.countId).innerText) || 0;
+    if (multiplier <= 0 || combos <= 0) return;
+
+    function combinePillars(pillars, size) {
+      const result = [];
+      function helper(start, path) {
+        if (path.length === size) {
+          result.push([...path]);
+          return;
+        }
+        for (let i = start; i < pillars.length; i++) {
+          for (let n of pillars[i]) {
+            helper(i + 1, path.concat([n]));
+          }
+        }
+      }
+      helper(0, []);
+      return result;
+    }
+
+    const combosList = combinePillars(pillars, cfg.id);
+    const rawCombos = combosList.map(c => c.join(","));
+    const displayCombos = rawCombos.join(" | ") + "（尚未對獎）";
+
+    const totalBet = combos * multiplier * unitAmount;
+    const currentIndex = getCurrentBetIndex();
+
+    
+    const totalReward = -1 * combos * multiplier * cfg.rewardUnit;
+    const subtotal = -1 * totalReward + totalBet;
+
+    
+    const row = document.createElement("tr");
+    row.setAttribute("data-m" + cfg.id, multiplier);  // 儲存倍數供對獎時使用
+    
+
+    // 建立索引欄
+    const indexCell = document.createElement("td");
+
+    indexCell.className = "bet-order";
+    indexCell.innerText = currentIndex;
+    row.appendChild(indexCell);
+
+    const comboCell = document.createElement("td");
+    comboCell.innerHTML = cfg.name + ": " + displayCombos + `<br><span class='text-sm text-gray-400'>開獎:${drawNumbers}</span>`;
+    row.appendChild(comboCell);
+
+    const betCell = document.createElement("td");
+    betCell.innerText = Math.round(totalBet).toLocaleString();
+    row.appendChild(betCell);
+
+    const prizeCell = document.createElement("td");
+    prizeCell.innerText = "0";
+    row.appendChild(prizeCell);
+
+    const netCell = document.createElement("td");
+    netCell.innerText = totalBet.toLocaleString();
+    row.appendChild(netCell);
+
+    const delCell = document.createElement("td");
+    const delBtn = document.createElement("button");
+    delBtn.innerText = "刪除";
+    delBtn.className = "bg-red-500 text-white px-2 py-1 rounded text-sm";
+    delBtn.onclick = function () {
+      row.remove();
+      reindexBetTable();
+      updateBetTotals();
+  reorderBetHistoryIndex();
+    };
+    delCell.appendChild(delBtn);
+    row.appendChild(delCell);
+
+    table.appendChild(row);
+    reindexBetTable();
+    updateBetTotals();
+  reorderBetHistoryIndex();
+  });
+}
+
+function reindexBetTable() {
+  const rows = document.querySelectorAll("#betHistoryTable tbody tr");
+  rows.forEach((row, i) => {
+    const cell = row.querySelector(".bet-order");
+    if (cell) cell.innerText = i + 1;
+  });
+}
+</script>
+</body>
+</html>
+<script>
+let tempDigits = "";
+let tempDisplay = null;
+
+function handleKeypadInput(key) {
+  if (key === "倒退") {
+    if (!currentTarget) return;
+
+    if (currentTarget.tagName === "INPUT") {
+      if (!['m2','m3','m4','a2','a3','a4'].includes(currentTarget.id)) {
+        currentTarget.value = currentTarget.value.slice(0, -1);
+        checkMatch?.();
+        updateFullCarInfo?.();
+      }
+    } else {
+      currentTarget.innerText = currentTarget.innerText.slice(0, -1);
+      calculateSummary?.();
+    }
+
+    tempDigits = "";
+    updateTempDisplay();
+    return;
+  }
+
+  if (!currentTarget) {
+    alert("請先點選欄位再輸入數字");
+    return;
+  }
+
+  if (!tempDisplay) {
+    tempDisplay = document.createElement("div");
+    tempDisplay.className = "text-xs text-gray-600 mt-1";
+    currentTarget.appendChild(tempDisplay);
+  }
+
+  // 若輸入的是 10/20/30 預設起始
+  if (['10','20','30'].includes(key)) {
+    tempDigits = key;
+    updateTempDisplay();
+    return;
+  }
+
+  // 處理 10/20/30 + 1~9 的組合
+  if (/^[0-9]$/.test(key)) {
+    if (['10','20','30'].includes(tempDigits)) {
+      const combined = parseInt(tempDigits) + parseInt(key);
+      if (combined > 39) {
+        alert("號碼不能超過 39");
+        tempDigits = "";
+        updateTempDisplay();
+        return;
+      }
+      appendNumber(combined);
+      tempDigits = "";
+      updateTempDisplay();
+      return;
+    }
+
+    // 一般單碼輸入流程
+    tempDigits += key;
+    updateTempDisplay();
+
+    const num = parseInt(tempDigits);
+    if (!isNaN(num) && num >= 1 && num <= 39) {
+      appendNumber(num);
+      tempDigits = "";
+      updateTempDisplay();
+    } else if (num > 39) {
+      alert("號碼不能超過 39");
+      tempDigits = "";
+      updateTempDisplay();
+    }
+    return;
+  }
+
+  if (key === ",") {
+    // 若有未完成的輸入，嘗試送出
+    const num = parseInt(tempDigits);
+    if (!isNaN(num) && num >= 1 && num <= 39) {
+      appendNumber(num);
+    }
+    tempDigits = "";
+
+    // 立即插入逗號
+    if (currentTarget.tagName === "INPUT") {
+      if (!['m2','m3','m4','a2','a3','a4'].includes(currentTarget.id)) {
+        currentTarget.value += ",";
+      }
+    } else {
+      currentTarget.innerText += ",";
+    }
+
+    updateTempDisplay();
+    return;
+  }
+
+  if (key === "確認") {
+    return;
+  }
+}
+
+function updateTempDisplay() {
+  if (tempDisplay) {
+    tempDisplay.innerText = tempDigits ? `輸入中：${tempDigits}` : "";
+  }
+}
+
+function appendNumber(num) {
+  if (isNaN(num) || num < 1 || num > 39) return;
+
+  function sortAndFormat(str) {
+    return str
+      .split(",")
+      .map(s => parseInt(s.trim()))
+      .filter(n => !isNaN(n) && n >= 1 && n <= 39)
+      .sort((a, b) => a - b)
+      .join(",");
+  }
+
+  if (currentTarget.tagName === "INPUT") {
+    const blockedIds = ['m2', 'm3', 'm4', 'a2', 'a3', 'a4'];
+    if (blockedIds.includes(currentTarget.id)) return;
+    let current = currentTarget.value.trim();
+    current += current ? "," + num : "" + num;
+
+    const withCommaIds = ['drawNumbers', 'betCount'];
+    currentTarget.value = withCommaIds.includes(currentTarget.id)
+      ? sortAndFormat(current) + ","
+      : sortAndFormat(current);
+
+    
+if (currentTarget.id === "drawNumbers") {
+  checkMatch?.();
+  updateFullCarInfo?.();
+}
+
+    if (currentTarget.id === "betCount") {
+      updateFullCarInfo?.();
+      checkMatch?.();
+    }
+
+  } else {
+    let current = currentTarget.innerText.trim();
+    current += current ? "," + num : "" + num;
+    currentTarget.innerText = sortAndFormat(current);
+  }
+
+  if (tempDisplay) {
+    tempDisplay.innerText = "";
+  }
+
+  calculateSummary?.();
+}
+</script>
+<div class="mt-4">
+</div>
