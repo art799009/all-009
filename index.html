@@ -44,6 +44,7 @@ function removeSummaryRow() {
 }
 
 </script>
+
 <style>
     .cell { min-width: 80px; min-height: 40px; cursor: pointer; }
     .cell.selected { background-color: #d1fae5; }
@@ -80,7 +81,6 @@ input[type=number] {
   border-left: none;
 }
 </style>
-
 <style>
 #betHistoryTable {
   border-collapse: collapse;
@@ -90,15 +90,47 @@ input[type=number] {
 }
 </style>
 
+<style>
+  /* 柱碰主表格欄位 hover 效果（深藍） */
+  td[contenteditable]:hover {
+    background-color: #bfdbfe; /* 較深藍 */
+    cursor: pointer;
+  }
+
+  /* 倍數欄位（m2, m3, m4） hover 效果 */
+  input#m2:hover,
+  input#m3:hover,
+  input#m4:hover {
+    background-color: #fde68a !important; /* 濃黃色 */
+    border-color: #facc15 !important;
+  }
+
+  /* 一般輸入框 hover 效果 */
+  input:hover {
+    background-color: #fef9c3;
+  }
+
+  /* 所有按鈕 hover 效果 */
+  button:hover {
+    filter: brightness(1.05);
+    transition: filter 0.2s ease;
+  }
+
+  /* 數字鍵盤用於 hover 效果的額外類別 */
+  .keypad-btn:hover {
+    background-color: #dbeafe !important;
+  }
+</style>
+
 </head>
 <body class="bg-gray-100 p-4">
 <div class="max-w-7xl mx-auto">
 <div class="flex items-center justify-between mb-2">
 <h2 class="text-xl font-semibold">539 簽牌柱碰區</h2>
 <div class="flex items-center gap-2"><button class="bg-blue-500 text-white px-4 py-2 rounded mr-2" onclick="recheckAllBets()">🔁 重新對獎</button>
-<label class="font-semibold">開獎的號碼：</label>
+<label class="font-semibold">開獎號碼：</label>
 <input class="border p-1 rounded w-32" id="drawNumbers" onclick="selectDrawInput()" oninput="checkMatch(); updateFullCarInfo();"/>
-<label class="font-semibold">命中的號碼：</label>
+<label class="font-semibold">命中號碼：</label>
 <span class="text-red-600 font-bold" id="matchSummary">0</span>
 </div>
 </div>
@@ -108,8 +140,8 @@ input[type=number] {
 <div class="flex-1">
 <table class="w-full text-sm text-center table-fixed border border-black table-auto mb-3">
 <tr class="bg-gray-100">
-<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">柱數</th>
-<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">車數</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">車號</th>
+<th class="border border-black px-1 py-0.5" style="border: 1px solid black;">倍數</th>
 <th class="border border-black px-1 py-0.5" style="border: 1px solid black;">每注金額</th>
 <th class="border border-black px-1 py-0.5" style="border: 1px solid black;">下注支數</th>
 <th class="border border-black px-1 py-0.5" style="border: 1px solid black;">下注金</th>
@@ -207,9 +239,8 @@ input[type=number] {
 </table>
 <div class="mt-2 flex justify-center gap-1 text-sm" id="paginationControls"></div>
 <div class="mt-2 flex justify-end">
-<button class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 text-sm" onclick="exportBetHistoryToCSV()">匯出 CSV</button>
 </div>
-</div><div class="flex flex-wrap gap-1 w-full mt-4"><button class="h-10 w-12 bg-gray-300 rounded" onclick="handleKeypadInput('30')">30</button><button class="h-10 w-12 bg-gray-300 rounded" onclick="handleKeypadInput('20')">20</button><button class="h-10 w-12 bg-gray-300 rounded" onclick="handleKeypadInput('10')">10</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('1')">1</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('2')">2</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('3')">3</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('4')">4</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('5')">5</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('6')">6</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('7')">7</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('8')">8</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('9')">9</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('0')">0</button><button class="h-10 w-16 bg-blue-200 rounded" onclick="handleKeypadInput('倒退')">倒退鍵</button><button class="h-10 w-16 bg-yellow-200 rounded" onclick="insertOther()">其它</button>
+</div><div class="flex flex-wrap gap-1 w-full mt-4"><button class="h-10 w-16 bg-purple-200 rounded" onclick="enableTailMode()">尾數</button><button class="h-10 w-12 bg-gray-300 rounded" onclick="handleKeypadInput('30')">30</button><button class="h-10 w-12 bg-gray-300 rounded" onclick="handleKeypadInput('20')">20</button><button class="h-10 w-12 bg-gray-300 rounded" onclick="handleKeypadInput('10')">10</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('1')">1</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('2')">2</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('3')">3</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('4')">4</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('5')">5</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('6')">6</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('7')">7</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('8')">8</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('9')">9</button><button class="h-10 w-12 bg-gray-200 rounded" onclick="handleKeypadInput('0')">0</button><button class="h-10 w-16 bg-blue-200 rounded" onclick="handleKeypadInput('倒退')">倒退鍵</button><button class="h-10 w-16 bg-yellow-200 rounded" onclick="insertOther()">其它</button>
 <button class="h-10 w-12 bg-gray-300 rounded" onclick="handleKeypadInput(',')">,</button></div>
 <script>
 function getValidPillarsFromTable() {
@@ -1206,9 +1237,13 @@ function recheckAllBets() {
       displayCombos = hitCombos.map(c => 
         c.map(n => `<span class='text-red-500 font-bold'>${n}</span>`).join(",")
       ).join(" | ");
-      typeCell.innerHTML = `${type}: ${displayCombos}（命中 ${hitCombos.length} 組）<br><span class='text-sm text-gray-400'>開獎:${drawInput}</span>`;
+      const originalRaw = typeCell.getAttribute("data-raw");
+    const hitText = hitCombos.map(c => c.join(",")).join(" | ");
+    typeCell.innerHTML = originalRaw + `（命中 ${hitCombos.length} 組${hitCombos.length > 0 ? "：" + hitText : ""}）`;
     } else {
-      typeCell.innerHTML = `${type}: <span class='text-gray-400'>(未中獎)</span><br><span class='text-sm text-gray-400'>開獎:${drawInput}</span>`;
+      const originalRaw = typeCell.getAttribute("data-raw");
+    const hitText = hitCombos.map(c => c.join(",")).join(" | ");
+    typeCell.innerHTML = originalRaw + `（命中 ${hitCombos.length} 組${hitCombos.length > 0 ? "：" + hitText : ""}）`;
     }
   });
 
@@ -1290,9 +1325,13 @@ function recheckAllBets() {
       displayCombos = hitCombos.map(c => 
         c.map(n => `<span class='text-red-500 font-bold'>${n}</span>`).join(",")
       ).join(" | ");
-      typeCell.innerHTML = `${type}: ${displayCombos}（命中 ${hitCombos.length} 組）<br><span class='text-sm text-gray-400'>開獎:${drawInput}</span>`;
+      const originalRaw = typeCell.getAttribute("data-raw");
+    const hitText = hitCombos.map(c => c.join(",")).join(" | ");
+    typeCell.innerHTML = originalRaw + `（命中 ${hitCombos.length} 組${hitCombos.length > 0 ? "：" + hitText : ""}）`;
     } else {
-      typeCell.innerHTML = `${type}: <span class='text-gray-400'>(未中獎)</span><br><span class='text-sm text-gray-400'>開獎:${drawInput}</span>`;
+      const originalRaw = typeCell.getAttribute("data-raw");
+    const hitText = hitCombos.map(c => c.join(",")).join(" | ");
+    typeCell.innerHTML = originalRaw + `（命中 ${hitCombos.length} 組${hitCombos.length > 0 ? "：" + hitText : ""}）`;
     }
   });
 
@@ -1300,8 +1339,6 @@ function recheckAllBets() {
   reorderBetHistoryIndex();
 }
 </script>
-
-
 <script>
 function getCurrentBetIndex() {
   const rows = document.querySelectorAll("#betHistoryTable tbody tr");
@@ -1383,161 +1420,116 @@ function reindexBetTable() {
   });
 }
 </script>
-</body>
-</html>
+
+
 <script>
-let tempDigits = "";
-let tempDisplay = null;
-
-function handleKeypadInput(key) {
-  if (key === "倒退") {
-    if (!currentTarget) return;
-
-    if (currentTarget.tagName === "INPUT") {
-      if (!['m2','m3','m4','a2','a3','a4'].includes(currentTarget.id)) {
-        currentTarget.value = currentTarget.value.slice(0, -1);
-        checkMatch?.();
-        updateFullCarInfo?.();
-      }
-    } else {
-      currentTarget.innerText = currentTarget.innerText.slice(0, -1);
-      calculateSummary?.();
-    }
-
-    tempDigits = "";
-    updateTempDisplay();
-    return;
-  }
-
-  if (!currentTarget) {
-    alert("請先點選欄位再輸入數字");
-    return;
-  }
-
-  if (!tempDisplay) {
-    tempDisplay = document.createElement("div");
-    tempDisplay.className = "text-xs text-gray-600 mt-1";
-    currentTarget.appendChild(tempDisplay);
-  }
-
-  // 若輸入的是 10/20/30 預設起始
-  if (['10','20','30'].includes(key)) {
-    tempDigits = key;
-    updateTempDisplay();
-    return;
-  }
-
-  // 處理 10/20/30 + 1~9 的組合
-  if (/^[0-9]$/.test(key)) {
-    if (['10','20','30'].includes(tempDigits)) {
-      const combined = parseInt(tempDigits) + parseInt(key);
-      if (combined > 39) {
-        alert("號碼不能超過 39");
-        tempDigits = "";
-        updateTempDisplay();
-        return;
-      }
-      appendNumber(combined);
-      tempDigits = "";
-      updateTempDisplay();
-      return;
-    }
-
-    // 一般單碼輸入流程
-    tempDigits += key;
-    updateTempDisplay();
-
-    const num = parseInt(tempDigits);
-    if (!isNaN(num) && num >= 1 && num <= 39) {
-      appendNumber(num);
-      tempDigits = "";
-      updateTempDisplay();
-    } else if (num > 39) {
-      alert("號碼不能超過 39");
-      tempDigits = "";
-      updateTempDisplay();
-    }
-    return;
-  }
-
-  if (key === ",") {
-    // 若有未完成的輸入，嘗試送出
-    const num = parseInt(tempDigits);
-    if (!isNaN(num) && num >= 1 && num <= 39) {
-      appendNumber(num);
-    }
-    tempDigits = "";
-
-    // 立即插入逗號
-    if (currentTarget.tagName === "INPUT") {
-      if (!['m2','m3','m4','a2','a3','a4'].includes(currentTarget.id)) {
-        currentTarget.value += ",";
-      }
-    } else {
-      currentTarget.innerText += ",";
-    }
-
-    updateTempDisplay();
-    return;
-  }
-
-  if (key === "確認") {
-    return;
-  }
+let tailMode = false;
+function enableTailMode() {
+  tailMode = true;
+  alert("尾數模式啟用，請點選 0~9 數字鍵");
 }
 
-function updateTempDisplay() {
-  if (tempDisplay) {
-    tempDisplay.innerText = tempDigits ? `輸入中：${tempDigits}` : "";
+
+function handleKeypadInput(val) {
+  if (!currentTarget) return;
+
+  // 倒退鍵邏輯
+  if (val === "倒退") {
+    if (currentTarget.tagName === "TD") {
+      let parts = currentTarget.innerText.trim().split(",").filter(x => x);
+      parts.pop();
+      currentTarget.innerText = parts.join(",");
+    } else if (currentTarget.tagName === "INPUT") {
+      let v = currentTarget.value.trim();
+      if (v.endsWith(",")) {
+        currentTarget.value = v.slice(0, -1);
+      } else {
+        const segs = v.split(",").filter(s => s.trim() !== "");
+        segs.pop();
+        currentTarget.value = segs.join(",") + (segs.length ? "," : "");
+      }
+      currentTarget.dispatchEvent(new Event("input"));
+    }
+    return;
   }
-}
 
-function appendNumber(num) {
-  if (isNaN(num) || num < 1 || num > 39) return;
+  // 尾數模式（僅針對柱碰表格）
+  if (tailMode && currentTarget.tagName === "TD" && /^[0-9]$/.test(val)) {
+    const num = parseInt(val);
+    const tailSet = [];
+    for (let i = 1; i <= 39; i++) {
+      if (i % 10 === num) tailSet.push(i.toString().padStart(2, '0'));
+    }
+    currentTarget.innerText = tailSet.join(",");
+    calculateSummary?.();
+    return;
+  }
 
-  function sortAndFormat(str) {
-    return str
-      .split(",")
-      .map(s => parseInt(s.trim()))
-      .filter(n => !isNaN(n) && n >= 1 && n <= 39)
-      .sort((a, b) => a - b)
-      .join(",");
+  // 準備 partialNumber 暫存十位數
+  if (!window.partialNumber) window.partialNumber = "";
+
+  if (["10", "20", "30"].includes(val)) {
+    window.partialNumber = val;
+    return;
   }
 
   if (currentTarget.tagName === "INPUT") {
-    const blockedIds = ['m2', 'm3', 'm4', 'a2', 'a3', 'a4'];
-    if (blockedIds.includes(currentTarget.id)) return;
-    let current = currentTarget.value.trim();
-    current += current ? "," + num : "" + num;
-
-    const withCommaIds = ['drawNumbers', 'betCount'];
-    currentTarget.value = withCommaIds.includes(currentTarget.id)
-      ? sortAndFormat(current) + ","
-      : sortAndFormat(current);
-
-    
-if (currentTarget.id === "drawNumbers") {
-  checkMatch?.();
-  updateFullCarInfo?.();
-}
-
-    if (currentTarget.id === "betCount") {
-      updateFullCarInfo?.();
-      checkMatch?.();
+    // input 欄位（開獎號碼）
+    if (window.partialNumber && /^[0-9]$/.test(val)) {
+      const full = parseInt(window.partialNumber) + parseInt(val);
+      if (full >= 1 && full <= 39) {
+        currentTarget.value += (currentTarget.value && !currentTarget.value.endsWith(",") ? "," : "") + full;
+      }
+      window.partialNumber = "";
+    } else if (/^\d+$/.test(val)) {
+      currentTarget.value += (currentTarget.value && !currentTarget.value.endsWith(",") ? "," : "") + val;
+      window.partialNumber = "";
+    } else if (val === ",") {
+      if (!currentTarget.value.endsWith(",")) currentTarget.value += ",";
     }
+    currentTarget.dispatchEvent(new Event("input"));
+    return;
+  }
 
+  // 處理 TD 格子（柱碰）
+  let content = currentTarget.innerText.trim();
+  let parts = content ? content.split(",").map(s => s.trim()).filter(s => s) : [];
+
+  if (window.partialNumber && /^[0-9]$/.test(val)) {
+    let combined = parseInt(window.partialNumber) + parseInt(val);
+    if (combined >= 1 && combined <= 39) {
+      parts.push(combined.toString());
+    }
+    window.partialNumber = "";
   } else {
-    let current = currentTarget.innerText.trim();
-    current += current ? "," + num : "" + num;
-    currentTarget.innerText = sortAndFormat(current);
+    let num = parseInt(val);
+    if (!isNaN(num) && num >= 1 && num <= 39) {
+      parts.push(num.toString());
+    }
+    window.partialNumber = "";
   }
 
-  if (tempDisplay) {
-    tempDisplay.innerText = "";
-  }
+  let numbers = parts.map(s => parseInt(s)).filter(n => !isNaN(n) && n >= 1 && n <= 39);
+  let uniqueSorted = [...new Set(numbers)].sort((a, b) => a - b);
 
+  currentTarget.innerText = uniqueSorted.join(",");
   calculateSummary?.();
 }
+
 </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const drawInput = document.getElementById("drawNumbers");
+  if (drawInput) {
+    drawInput.addEventListener("input", function () {
+      checkMatch?.();
+      calculateSummary?.();
+    });
+  }
+});
+</script>
+</body>
+</html>
 <div class="mt-4">
 </div>
