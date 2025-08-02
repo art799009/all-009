@@ -1134,13 +1134,13 @@ function getDrawNumbers() {
 }
 
 function recheckAllBets() {
-  const drawNumbers = getDrawNumbers();
+  const drawInput = document.getElementById("drawNumbers").value.trim();
+  const drawNumbers = drawInput ? drawInput.split(",").map(n => parseInt(n.trim())).filter(n => !isNaN(n)) : [];
   if (drawNumbers.length === 0) {
     alert("請先輸入開獎號碼！");
     return;
   }
 
-  
   const typeNumMap = { "二星": 2, "三星": 3, "四星": 4 };
   const rewardUnits = {
     "二星": 5300,
@@ -1148,36 +1148,68 @@ function recheckAllBets() {
     "四星": 800000
   };
 
-  const table = document.getElementById("betHistoryTable").getElementsByTagName("tbody")[0];
-  Array.from(table.rows).forEach(row => {
+  const rows = document.querySelectorAll("#betHistoryTable tbody tr");
+  rows.forEach(row => {
     const typeCell = row.cells[1];
-    const typeMatch = typeCell.innerText.match(/^(二星|三星|四星)/);
+    const raw = typeCell.getAttribute("data-raw");
+    if (!raw) return;
+
+    const typeMatch = raw.match(/^(二星|三星|四星):/);
     if (!typeMatch) return;
 
     const type = typeMatch[1];
-    const rewardUnit = rewardUnits[type];
-    const text = typeCell.innerText;
-    const comboMatch = text.match(/: (.+?)(（|$)/);
-    if (!comboMatch) return;
+    const comboSize = typeNumMap[type];
+    const rewardPerCombo = rewardUnits[type];
 
-    const combos = comboMatch[1].split("|").map(s => s.trim().split(",").map(n => parseInt(n.trim())).filter(n => !isNaN(n)));
+    const pillarsRaw = raw.replace(`${type}:`, "").trim();
+    const pillarGroups = pillarsRaw.split("|").map(g => 
+      g.trim().split(",").map(n => parseInt(n.trim())).filter(n => !isNaN(n))
+    ).filter(g => g.length > 0);
+
+    function combinePillars(pillars, size) {
+      const result = [];
+      function helper(start, path) {
+        if (path.length === size) {
+          result.push([...path]);
+          return;
+        }
+        for (let i = start; i < pillars.length; i++) {
+          for (let n of pillars[i]) {
+            helper(i + 1, path.concat([n]));
+          }
+        }
+      }
+      helper(0, []);
+      return result;
+    }
+
+    const combos = combinePillars(pillarGroups, comboSize);
     const hitCombos = combos.filter(c => {
       const set = new Set(c);
       return set.size === c.length && c.every(n => drawNumbers.includes(n));
     });
 
-    const displayCombos = hitCombos.length > 0
-      ? hitCombos.map(c => c.join(",")).join(" | ") + `（命中 ${hitCombos.length} 組）`
-      : combos.map(c => c.join(",")).join(" | ") + "（未中獎）";
-
-    typeCell.innerText = `${type}: ${displayCombos}`;
-
-    const betAmount = parseFloat(row.cells[2].innerText.replace(/,/g, '')) || 0;
-    const reward = hitCombos.length * rewardUnit;
-    const net = reward - betAmount;
+    const multiplierAttr = row.getAttribute("data-m" + comboSize);
+    const multiplier = parseFloat(multiplierAttr) || 1;
+    const reward = -1 * hitCombos.length * multiplier * rewardPerCombo;
+    const bet = parseFloat(row.cells[2].innerText.replace(/,/g, '')) || 0;
+    const subtotal = bet + reward;
 
     row.cells[3].innerText = reward.toLocaleString();
-    row.cells[4].innerText = (betAmount - payoutMultiplied).toLocaleString();
+    row.cells[4].innerText = subtotal.toLocaleString();
+    row.cells[3].style.color = reward < 0 ? "red" : "black";
+    row.cells[4].style.color = subtotal < 0 ? "red" : "black";
+
+    // 只顯示命中的組合
+    let displayCombos = "";
+    if (hitCombos.length > 0) {
+      displayCombos = hitCombos.map(c => 
+        c.map(n => `<span class='text-red-500 font-bold'>${n}</span>`).join(",")
+      ).join(" | ");
+      typeCell.innerHTML = `${type}: ${displayCombos}（命中 ${hitCombos.length} 組）<br><span class='text-sm text-gray-400'>開獎:${drawInput}</span>`;
+    } else {
+      typeCell.innerHTML = `${type}: <span class='text-gray-400'>(未中獎)</span><br><span class='text-sm text-gray-400'>開獎:${drawInput}</span>`;
+    }
   });
 
   updateBetTotals();
@@ -1193,7 +1225,6 @@ function recheckAllBets() {
     return;
   }
 
-  
   const typeNumMap = { "二星": 2, "三星": 3, "四星": 4 };
   const rewardUnits = {
     "二星": 5300,
@@ -1201,45 +1232,68 @@ function recheckAllBets() {
     "四星": 800000
   };
 
-  const table = document.getElementById("betHistoryTable").getElementsByTagName("tbody")[0];
-  Array.from(table.rows).forEach(row => {
+  const rows = document.querySelectorAll("#betHistoryTable tbody tr");
+  rows.forEach(row => {
     const typeCell = row.cells[1];
-    const typeMatch = typeCell.innerText.match(/^(二星|三星|四星)/);
+    const raw = typeCell.getAttribute("data-raw");
+    if (!raw) return;
+
+    const typeMatch = raw.match(/^(二星|三星|四星):/);
     if (!typeMatch) return;
 
     const type = typeMatch[1];
-    const rewardUnit = rewardUnits[type];
-    const text = typeCell.innerText;
-    const comboMatch = text.match(/: (.+?)(（|$)/);
-    if (!comboMatch) return;
+    const comboSize = typeNumMap[type];
+    const rewardPerCombo = rewardUnits[type];
 
-    const combos = comboMatch[1].split("|").map(s => s.trim().split(",").map(n => parseInt(n.trim())).filter(n => !isNaN(n)));
+    const pillarsRaw = raw.replace(`${type}:`, "").trim();
+    const pillarGroups = pillarsRaw.split("|").map(g => 
+      g.trim().split(",").map(n => parseInt(n.trim())).filter(n => !isNaN(n))
+    ).filter(g => g.length > 0);
+
+    function combinePillars(pillars, size) {
+      const result = [];
+      function helper(start, path) {
+        if (path.length === size) {
+          result.push([...path]);
+          return;
+        }
+        for (let i = start; i < pillars.length; i++) {
+          for (let n of pillars[i]) {
+            helper(i + 1, path.concat([n]));
+          }
+        }
+      }
+      helper(0, []);
+      return result;
+    }
+
+    const combos = combinePillars(pillarGroups, comboSize);
     const hitCombos = combos.filter(c => {
       const set = new Set(c);
       return set.size === c.length && c.every(n => drawNumbers.includes(n));
     });
 
-    const displayCombos = hitCombos.length > 0
-      ? hitCombos.map(c => c.join(",")).join(" | ") + `（命中 ${hitCombos.length} 組）`
-      : combos.map(c => c.join(",")).join(" | ") + "（未中獎）";
-
-    typeCell.innerHTML = `${type}: ${displayCombos}<br><span class='text-sm text-gray-400'>開獎:${drawInput}</span>`;
-
-    const betAmount = parseFloat(row.cells[2].innerText.replace(/,/g, '')) || 0;
-    const payout = hitCombos.length * rewardUnit;
-    const net = betAmount - payout;
-
-    
-    const multiplierAttr = row.getAttribute("data-m" + typeNumMap[type]);
+    const multiplierAttr = row.getAttribute("data-m" + comboSize);
     const multiplier = parseFloat(multiplierAttr) || 1;
-    const payoutMultiplied = hitCombos.length * rewardUnit * multiplier;
-    row.cells[3].innerText = "-" + payoutMultiplied.toLocaleString();
-    
-    row.cells[4].innerText = (betAmount - payoutMultiplied).toLocaleString();
+    const reward = -1 * hitCombos.length * multiplier * rewardPerCombo;
+    const bet = parseFloat(row.cells[2].innerText.replace(/,/g, '')) || 0;
+    const subtotal = bet + reward;
 
-    // 樣式更新
-    row.cells[3].style.color = payout > 0 ? "red" : "black";
-    row.cells[4].style.color = net < 0 ? "red" : "black";
+    row.cells[3].innerText = reward.toLocaleString();
+    row.cells[4].innerText = subtotal.toLocaleString();
+    row.cells[3].style.color = reward < 0 ? "red" : "black";
+    row.cells[4].style.color = subtotal < 0 ? "red" : "black";
+
+    // 只顯示命中的組合
+    let displayCombos = "";
+    if (hitCombos.length > 0) {
+      displayCombos = hitCombos.map(c => 
+        c.map(n => `<span class='text-red-500 font-bold'>${n}</span>`).join(",")
+      ).join(" | ");
+      typeCell.innerHTML = `${type}: ${displayCombos}（命中 ${hitCombos.length} 組）<br><span class='text-sm text-gray-400'>開獎:${drawInput}</span>`;
+    } else {
+      typeCell.innerHTML = `${type}: <span class='text-gray-400'>(未中獎)</span><br><span class='text-sm text-gray-400'>開獎:${drawInput}</span>`;
+    }
   });
 
   updateBetTotals();
@@ -1264,7 +1318,6 @@ function recordPillarBet() {
   }
 
   const table = document.getElementById("betHistoryTable").getElementsByTagName("tbody")[0];
-  const drawNumbers = document.getElementById("drawNumbers").value.trim();
 
   const cells = document.querySelectorAll("#mainTable tbody tr:first-child td");
   let pillars = [];
@@ -1275,91 +1328,51 @@ function recordPillarBet() {
   });
 
   const config = [
-    { id: 2, name: "二星", multiplierId: "m2", unitId: "a2", countId: "c2", rewardUnit: 5300 },
-    { id: 3, name: "三星", multiplierId: "m3", unitId: "a3", countId: "c3", rewardUnit: 57000 },
-    { id: 4, name: "四星", multiplierId: "m4", unitId: "a4", countId: "c4", rewardUnit: 800000 },
+    { id: 2, name: "二星", multiplierId: "m2", unitId: "a2", countId: "c2", rewardId: "w2", totalId: "t2", sumId: "sum2" },
+    { id: 3, name: "三星", multiplierId: "m3", unitId: "a3", countId: "c3", rewardId: "w3", totalId: "t3", sumId: "sum3" },
+    { id: 4, name: "四星", multiplierId: "m4", unitId: "a4", countId: "c4", rewardId: "w4", totalId: "t4", sumId: "sum4" },
   ];
 
   config.forEach(cfg => {
     const multiplier = parseFloat(document.getElementById(cfg.multiplierId).value) || 0;
     const unitAmount = parseFloat(document.getElementById(cfg.unitId).value) || 0;
     const combos = parseFloat(document.getElementById(cfg.countId).innerText) || 0;
+    const reward = parseFloat(document.getElementById(cfg.rewardId).innerText.replace(/,/g, '')) || 0;
+    const total = parseFloat(document.getElementById(cfg.totalId).innerText.replace(/,/g, '')) || 0;
+    const subtotal = total + reward;
+
     if (multiplier <= 0 || combos <= 0) return;
 
-    function combinePillars(pillars, size) {
-      const result = [];
-      function helper(start, path) {
-        if (path.length === size) {
-          result.push([...path]);
-          return;
-        }
-        for (let i = start; i < pillars.length; i++) {
-          for (let n of pillars[i]) {
-            helper(i + 1, path.concat([n]));
-          }
-        }
-      }
-      helper(0, []);
-      return result;
-    }
+    const row = table.insertRow(-1);
+    row.setAttribute("data-m" + cfg.id, multiplier);
 
-    const combosList = combinePillars(pillars, cfg.id);
-    const rawCombos = combosList.map(c => c.join(","));
-    const displayCombos = rawCombos.join(" | ") + "（尚未對獎）";
+    row.insertCell(0).innerText = getCurrentBetIndex();
 
-    const totalBet = combos * multiplier * unitAmount;
-    const currentIndex = getCurrentBetIndex();
+    const pillarDisplay = pillars.map(group => group.join(",")).join(" | ");
+    const signedNumbers = `${cfg.name}: ${pillarDisplay}`;
+    const cell1 = row.insertCell(1);
+    cell1.innerHTML = signedNumbers;
+    cell1.setAttribute("data-raw", signedNumbers);
 
-    
-    const totalReward = -1 * combos * multiplier * cfg.rewardUnit;
-    const subtotal = -1 * totalReward + totalBet;
+    row.insertCell(2).innerText = total.toLocaleString();
+    row.insertCell(3).innerText = reward.toLocaleString();
+    row.insertCell(4).innerText = subtotal.toLocaleString();
+    row.cells[4].style.color = subtotal < 0 ? "red" : "black";
 
-    
-    const row = document.createElement("tr");
-    row.setAttribute("data-m" + cfg.id, multiplier);  // 儲存倍數供對獎時使用
-    
-
-    // 建立索引欄
-    const indexCell = document.createElement("td");
-
-    indexCell.className = "bet-order";
-    indexCell.innerText = currentIndex;
-    row.appendChild(indexCell);
-
-    const comboCell = document.createElement("td");
-    comboCell.innerHTML = cfg.name + ": " + displayCombos + `<br><span class='text-sm text-gray-400'>開獎:${drawNumbers}</span>`;
-    row.appendChild(comboCell);
-
-    const betCell = document.createElement("td");
-    betCell.innerText = Math.round(totalBet).toLocaleString();
-    row.appendChild(betCell);
-
-    const prizeCell = document.createElement("td");
-    prizeCell.innerText = "0";
-    row.appendChild(prizeCell);
-
-    const netCell = document.createElement("td");
-    netCell.innerText = totalBet.toLocaleString();
-    row.appendChild(netCell);
-
-    const delCell = document.createElement("td");
-    const delBtn = document.createElement("button");
-    delBtn.innerText = "刪除";
-    delBtn.className = "bg-red-500 text-white px-2 py-1 rounded text-sm";
-    delBtn.onclick = function () {
+    const deleteCell = row.insertCell(5);
+    const deleteBtn = document.createElement("button");
+    deleteBtn.innerText = "刪除";
+    deleteBtn.className = "bg-red-500 text-white px-2 py-1 rounded text-sm";
+    deleteBtn.onclick = function () {
       row.remove();
-      reindexBetTable();
       updateBetTotals();
-  reorderBetHistoryIndex();
+      reorderBetHistoryIndex();
     };
-    delCell.appendChild(delBtn);
-    row.appendChild(delCell);
-
-    table.appendChild(row);
-    reindexBetTable();
-    updateBetTotals();
-  reorderBetHistoryIndex();
+    deleteCell.appendChild(deleteBtn);
   });
+
+  updateBetTotals();
+  reorderBetHistoryIndex();
 }
 
 function reindexBetTable() {
