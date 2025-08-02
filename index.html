@@ -1529,6 +1529,39 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 </script>
+
+
+
+<script>
+function enableTailMode() {
+  if (!currentTarget || currentTarget.tagName === "INPUT") {
+    alert("請先點選要輸入尾數的格子");
+    return;
+  }
+
+  const tailDigit = prompt("請輸入尾數（0~9）"); // 使用者手動輸入尾數
+  if (tailDigit === null) return; // 按取消
+  const digit = parseInt(tailDigit);
+  if (isNaN(digit) || digit < 0 || digit > 9) {
+    alert("尾數必須是 0~9 的數字");
+    return;
+  }
+
+  // 組出尾數數字（0=>10,20,30，1~9=>01,11,...）
+  const tailNumbers = [];
+  for (let i = digit; i <= 39; i += 10) {
+    if (i !== 0) {
+      tailNumbers.push(i.toString().padStart(2, '0'));
+    }
+  }
+
+  currentTarget.innerText = tailNumbers.join(",");
+  calculateSummary?.();
+}
+</script>
+
+
+
 </body>
 </html>
 <div class="mt-4">
